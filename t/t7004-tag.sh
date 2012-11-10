@@ -1380,4 +1380,26 @@ test_expect_success 'multiple --points-at are OR-ed together' '
 	test_cmp expect actual
 '
 
+test_lazy_prereq BASH 'bash --version'
+
+>expect
+# we require bash for its 'ulimit' builtin
+test_expect_success BASH '--contains works in a deep repo' '
+	i=1 &&
+	while test $i -lt 1000
+	do
+		echo "commit refs/heads/master
+committer A U Thor <author@example.com> $((1000000000 + $i * 100)) +0200
+data <<EOF
+commit #$i
+EOF"
+		test $i = 1 && echo "from refs/heads/master^0"
+		i=$(($i + 1))
+	done | git fast-import &&
+	git checkout master &&
+	git tag far-far-away HEAD^ &&
+	bash -c "ulimit -s 64 && git tag --contains HEAD >actual" &&
+	test_cmp expect actual
+'
+
 test_done
