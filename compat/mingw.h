@@ -271,19 +271,38 @@ static inline int getrlimit(int resource, struct rlimit *rlp)
 	return 0;
 }
 
-/* Use mingw_lstat() instead of lstat()/stat() and
- * mingw_fstat() instead of fstat() on Windows.
- */
 #define off_t off64_t
 #define lseek _lseeki64
+
 #ifndef ALREADY_DECLARED_STAT_FUNCS
+
+/* Use mingw_stat() instead of _stat*i64(), mingw_lstat() instead of lstat() and
+ * mingw_fstat() instead of fstat() on Windows.
+ */
+#ifdef stat
+#undef stat
+#endif
+#if defined(__MINGW_MAJOR_VERSION) && __MINGW_MAJOR_VERSION >= 4
+#define stat _stat32i64
+#define _stat32i64(x, y) mingw_stat(x, y)
+#else
 #define stat _stati64
-int mingw_lstat(const char *file_name, struct stat *buf);
+#define _stati64(x, y) mingw_stat(x, y)
+#endif
 int mingw_stat(const char *file_name, struct stat *buf);
+
+#ifdef lstat
+#undef lstat
+#endif
+#define lstat(x, y) mingw_lstat(x, y)
+int mingw_lstat(const char *file_name, struct stat *buf);
+
+#ifdef fstat
+#undef fstat
+#endif
+#define fstat(x, y) mingw_fstat(x, y)
 int mingw_fstat(int fd, struct stat *buf);
-#define fstat mingw_fstat
-#define lstat mingw_lstat
-#define _stati64(x,y) mingw_stat(x,y)
+
 #endif
 
 int mingw_utime(const char *file_name, const struct utimbuf *times);
