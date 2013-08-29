@@ -105,7 +105,9 @@
 #endif
 
 #ifdef WIN32 /* Both MinGW and MSVC */
+#ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0502
+#endif
 #define WIN32_LEAN_AND_MEAN  /* stops windows.h including winsock.h */
 #include <winsock2.h>
 #include <windows.h>
