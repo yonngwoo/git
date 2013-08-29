@@ -85,6 +85,25 @@
 #define _NETBSD_SOURCE 1
 #define _SGI_SOURCE 1
 
+#ifdef __MINGW32__
+#ifdef __NO_INLINE__
+#define __NO_INLINE_ALREADY_DEFINED
+#else
+#define __NO_INLINE__ /* do not inline strcasecmp() */
+#endif
+#endif
+#include <string.h>
+#ifdef __MINGW32__
+#ifdef __NO_INLINE_ALREADY_DEFINED
+#undef __NO_INLINE_ALREADY_DEFINED
+#else
+#undef __NO_INLINE__
+#endif
+#endif
+#ifdef HAVE_STRINGS_H
+#include <strings.h> /* for strcasecmp() */
+#endif
+
 #ifdef WIN32 /* Both MinGW and MSVC */
 #define _WIN32_WINNT 0x0502
 #define WIN32_LEAN_AND_MEAN  /* stops windows.h including winsock.h */
@@ -99,10 +118,6 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <string.h>
-#ifdef HAVE_STRINGS_H
-#include <strings.h> /* for strcasecmp() */
-#endif
 #include <errno.h>
 #include <limits.h>
 #ifdef NEEDS_SYS_PARAM_H
