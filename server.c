@@ -5,8 +5,18 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h> 
+#ifdef WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
+static void bzero(void *address, int length)
+{
+	memset(address, 0, length);
+}
+#else
 #include <sys/socket.h>
 #include <netinet/in.h>
+#endif
 
 void error(const char *msg)
 {
@@ -25,6 +35,10 @@ int main(int argc, char *argv[])
          fprintf(stderr,"ERROR, no port provided\n");
          exit(1);
      }
+#ifdef WIN32
+     WSADATA wsa;
+     if (WSAStartup(MAKEWORD(2,2), &wsa)) error("WSAStartup");
+#endif
      sockfd = socket(AF_INET, SOCK_STREAM, 0);
      if (sockfd < 0) 
         error("ERROR opening socket");
@@ -48,5 +62,8 @@ int main(int argc, char *argv[])
      if (n < 0) error("ERROR writing to socket");
      close(newsockfd);
      close(sockfd);
+#ifdef WIN32
+     WSACleanup();
+#endif
      return 0; 
 }
