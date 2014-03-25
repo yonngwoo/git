@@ -24,6 +24,7 @@ typedef struct DIR {
 extern DIR *dirent_opendir(const char *dirname);
 
 /* current dirent implementation */
+#define opendir mingw_opendir
 extern DIR *(*opendir)(const char *dirname);
 
 #define readdir(dir) (dir->preaddir(dir))
