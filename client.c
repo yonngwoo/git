@@ -175,9 +175,10 @@ static int err_win_to_posix(DWORD winerr)
 	return error;
 }
 #else
+#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <netdb.h> 
+#include <netdb.h>
 #endif
 
 void error(const char *msg)

@@ -3,22 +3,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <unistd.h>
-#include <sys/types.h> 
+#include <sys/types.h>
 #include <fcntl.h>
 #ifdef WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <fcntl.h>
+#include <io.h>
 
 static void bzero(void *address, int length)
 {
 	memset(address, 0, length);
 }
 #else
+#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <io.h>
 #endif
 void error(const char *fmt, ...)
 {
