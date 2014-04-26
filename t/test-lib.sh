@@ -689,6 +689,49 @@ case "$TRASH_DIRECTORY" in
  *) TRASH_DIRECTORY="$TEST_OUTPUT_DIRECTORY/$TRASH_DIRECTORY" ;;
 esac
 test ! -z "$debug" || remove_trash=$TRASH_DIRECTORY
+
+case $(uname -s) in
+*MINGW*)
+	# Converting to win32 path to supply to cmd.exe command.
+	winpath () {
+		echo "$1"|sed -e 's+^/\([a-z]\)/+\1:/+' -e 's+/+\\+g'
+	}
+	rm () {
+		rm_is_rf=0
+		rm_is_f=0
+		for ARG in "$@"
+		do
+			case "$ARG" in
+			-rf|-fr) rm_is_rf=1 ; rm_is_f=1 ;;
+			-f) rm_is_f=1 ;;
+			-*) ;; # ignore
+			*)
+				rm_arg_winpath="$(winpath "$ARG")"
+				if test -d "$ARG"; then
+					if test $rm_is_rf -eq 1 ; then
+						# Delete files, then remove directories.
+						# Force so make sure the result is true
+						cmd /c "del /s/q/f \"$rm_arg_winpath\" 2>nul && rmdir /q/s \"$rm_arg_winpath\" 2>nul" >/dev/null || true
+					else
+						# Works for symlinks as well
+						cmd /c "@rmdir /q \"$rm_arg_winpath\""
+					fi
+				else
+					# Using del works for symlinks as well
+					if test $rm_is_f -eq 1 ; then
+						# Force so make sure the result is true
+						cmd /c "@del /q/f \"$rm_arg_winpath\" 2>nul" >/dev/null || true
+					else
+						cmd /c "@del /q/f \"$rm_arg_winpath\" 2>nul" >/dev/null
+					fi
+				fi
+			;;
+			esac
+		done
+	}
+	;;
+esac
+
 rm -fr "$TRASH_DIRECTORY" || {
 	GIT_EXIT_OK=t
 	echo >&5 "FATAL: Cannot prepare test area"
@@ -748,6 +791,43 @@ case $(uname -s) in
 	# git sees Windows-style pwd
 	pwd () {
 		builtin pwd -W
+	}
+	# use mklink
+	ln () {
+
+		ln_sym_hard=/H
+		ln_sym_dir=
+		if test "$1" = "-s"
+		then
+			sym_hard=
+			shift
+		fi
+		pushd $(dirname "$2") 2>&1 > /dev/null
+		builtin test -d "$1" && sym_dir=/D
+		popd > /dev/null 2> /dev/null
+		cmd /c "mklink ${sym_hard}${sym_dir} \"$(winpath "$2")\" \"$(winpath "$1")\">/dev/null " 2>/dev/null
+	}
+	test () {
+		case "$1" in
+			-[hL])
+				if builtin test -d "$2" ; then
+					test_sym_dir=$(dirname "$2")
+					builtin test -n "${test_sym_dir}" && pushd "${test_sym_dir}"  2>&1 > /dev/null
+					test_sym_base=$(basename "$2")
+					test_file=$(cmd /c "@dir /b/a:l \"${test_sym_base}?\" 2> nul" | grep "^${test_sym_base}$" )
+					builtin test -n "${test_sym_dir}" && popd 2>&1> /dev/null
+					builtin test -n "${test_file}"
+				else
+					test_file=$(cmd /c "@dir /b/a:l \"$(winpath "$2")\" 2> nul" )
+					builtin test -n "${test_file}"
+				fi
+			;;
+		-f)
+			test_file=$(cmd /c "@dir /b/a:-d-l-s \"$(winpath "$2")\" 2> nul" )
+			builtin test -n "${test_file}"
+			;;
+		*) builtin test "$@";;
+		esac
 	}
 	# no POSIX permissions
 	# backslashes in pathspec are converted to '/'
@@ -832,6 +912,7 @@ test_lazy_prereq PIPE '
 
 test_lazy_prereq SYMLINKS '
 	# test whether the filesystem supports symbolic links
+	touch x
 	ln -s x y && test -h y
 '
 
