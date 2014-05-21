@@ -55,4 +55,39 @@ test_expect_success cleanup '
 	test ! -z "$debug" || rm -rf longpa~1
 '
 
+test_expect_success 'clean up path close to MAX_PATH' '
+	SMITHS="$(cd .. && pwd -W)/smiths" &&
+	if test -d "$SMITHS"
+	then
+		rm -rf "$SMITHS"
+	fi &&
+
+	SMITHS_LENGTH=$(echo "$SMITHS" | wc -c) &&
+	if test 50 -ge $SMITHS_LENGTH
+	then
+		SUFFIX="$(echo smiths/workspace/ATM-hourly/SLAVE/build-win7-32 |
+			tail -c $((51-$SMITHS_LENGTH)))" &&
+		ROOT="$SMITHS/$SUFFIX" &&
+		SUB1A=lodash.merge/node_modules &&
+		SUB1=data/data/gui/html/common/jwe/node_modules/$SUB1A &&
+		SUB2A=bind/node_modules/lodash._createwrapper/node_modules &&
+		SUB2=lodash._basecreatecallback/node_modules/lodash.$SUB2A &&
+		SUB3A=lodash._basecreate/node_modules/lodash._isnative &&
+		SUB3=lodash._basecreatewrapper/node_modules/$SUB3A &&
+
+		mkdir -p $ROOT &&
+		(cd $ROOT &&
+		 git init &&
+
+		 mkdir -p $SUB1 $SUB2 $SUB3 &&
+		 echo {} >> $SUB3/package.json &&
+		 mv ${SUB3%%/*} $SUB2 &&
+		 mv ${SUB2%%/*} $SUB1 &&
+
+		 git config core.longpaths yes &&
+		 git clean -fdx) &&
+		rm -rf "$SMITHS"
+	fi
+'
+
 test_done
